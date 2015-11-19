@@ -259,9 +259,9 @@ private[parquet] class CatalystRowConverter(
               "Timestamps (with nanoseconds) are expected to be stored in 12-byte long binaries, " +
               s"but got a ${value.length()}-byte binary.")
 
-            val buf = value.toByteBuffer.order(ByteOrder.LITTLE_ENDIAN)
-            val timeOfDayNanos = buf.getLong
+            val buf = value.toByteBuffer.order(ByteOrder.BIG_ENDIAN)
             val julianDay = buf.getInt
+            val timeOfDayNanos = buf.getLong
             updater.setLong(DateTimeUtils.fromJulianDay(julianDay, timeOfDayNanos))
           }
         }

@@ -164,7 +164,7 @@ private[parquet] class CatalystWriteSupport extends WriteSupport[InternalRow] wi
           // precision.  Nanosecond parts of timestamp values read from INT96 are simply stripped.
           val (julianDay, timeOfDayNanos) = DateTimeUtils.toJulianDay(row.getLong(ordinal))
           val buf = ByteBuffer.wrap(timestampBuffer)
-          buf.order(ByteOrder.LITTLE_ENDIAN).putLong(timeOfDayNanos).putInt(julianDay)
+          buf.order(ByteOrder.BIG_ENDIAN).putInt(julianDay).putLong(timeOfDayNanos)
           recordConsumer.addBinary(Binary.fromByteArray(timestampBuffer))
         }
 

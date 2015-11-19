@@ -48,7 +48,7 @@ private[sql] object ParquetFilters {
       DateTimeUtils.toJulianDay(l)
     val timestampBuffer = new Array[Byte](12)
     val buf = ByteBuffer.wrap(timestampBuffer)
-    buf.order(ByteOrder.LITTLE_ENDIAN).putLong(timeOfDayNanos).putInt(julianDay)
+    buf.order(ByteOrder.BIG_ENDIAN).putInt(julianDay).putLong(timeOfDayNanos)
     val b = Binary.fromByteArray(timestampBuffer)
     b
   }

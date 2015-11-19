@@ -6,7 +6,8 @@ import java.sql.Timestamp
 import org.apache.parquet.io.api.Binary
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
-import org.scalatest.FunSuite
+import org.scalatest.{Assertions, FunSuite}
+import org.scalatest.Assertions._
 
 /**
  * There are a few confusions whem dealing with timestamp
@@ -55,8 +56,8 @@ class BinaryTest extends FunSuite {
       "Timestamps (with nanoseconds) are expected to be stored in 12-byte long binaries, " +
         s"but got a ${value.length()}-byte binary.")
 
-    val buf = value.toByteBuffer.order(ByteOrder.LITTLE_ENDIAN)
-    //val buf = value.toByteBuffer.order(ByteOrder.BIG_ENDIAN)
+    //val buf = value.toByteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+    val buf = value.toByteBuffer.order(ByteOrder.BIG_ENDIAN)
     val timeOfDayNanos = buf.getLong
     val julianDay = buf.getInt
     val ts = DateTimeUtils.fromJulianDay(julianDay, timeOfDayNanos)
@@ -73,8 +74,8 @@ class BinaryTest extends FunSuite {
     val (julianDay, timeOfDayNanos) = DateTimeUtils.toJulianDay(l)
     val timestampBuffer = new Array[Byte](12)
     val buf = ByteBuffer.wrap(timestampBuffer)
-    buf.order(ByteOrder.LITTLE_ENDIAN).putLong(timeOfDayNanos).putInt(julianDay)
-    //buf.order(ByteOrder.BIG_ENDIAN).putLong(timeOfDayNanos).putInt(julianDay)
+    //buf.order(ByteOrder.LITTLE_ENDIAN).putLong(timeOfDayNanos).putInt(julianDay)
+    buf.order(ByteOrder.BIG_ENDIAN).putLong(timeOfDayNanos).putInt(julianDay)
     val b = Binary.fromByteArray(timestampBuffer)
     b
   }

@@ -143,12 +143,11 @@ class ParquetFilterSuite extends QueryTest with ParquetTest with SharedSQLContex
       checkFilterPredicate('_1 === 3.t, classOf[Eq[_]], 3.t)
       checkFilterPredicate('_1 === 2.t, classOf[Eq[_]], 2.t)
       checkFilterPredicate('_1 === 1.t, classOf[Eq[_]], 1.t)
-      checkFilterPredicate('_1 <=> 1.t, classOf[Eq[_]], 1.t)
 
+      checkFilterPredicate('_1 <=> 1.t, classOf[Eq[_]], 1.t)
       checkFilterPredicate('_1 !== 1.t, classOf[NotEq[_]],
         (2 to 4).map( i => Row.apply(i.t)))
 
-      // failing for unknown reason
       checkFilterPredicate('_1 < 2.t, classOf[Lt[_]], 1.t)
       checkFilterPredicate('_1 > 3.t, classOf[Gt[_]], 4.t)
       checkFilterPredicate('_1 <= 1.t, classOf[LtEq[_]], 1.t)
@@ -156,7 +155,6 @@ class ParquetFilterSuite extends QueryTest with ParquetTest with SharedSQLContex
 
       checkFilterPredicate(Literal(1.t) === '_1, classOf[Eq[_]], 1.t)
       checkFilterPredicate(Literal(1.t) <=> '_1, classOf[Eq[_]], 1.t)
-      // failing for unknown reason
       checkFilterPredicate(Literal(2.t) > '_1, classOf[Lt[_]], 1.t)
       checkFilterPredicate(Literal(3.t) < '_1, classOf[Gt[_]], 4.t)
       checkFilterPredicate(Literal(1.t) >= '_1, classOf[LtEq[_]], 1.t)
