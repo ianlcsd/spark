@@ -17,6 +17,7 @@
 
 package org.apache.spark.sql.execution.datasources.parquet
 
+import java.sql.Timestamp
 import org.apache.parquet.filter2.predicate.Operators._
 import org.apache.parquet.filter2.predicate.{FilterPredicate, Operators}
 
@@ -113,6 +114,59 @@ class ParquetFilterSuite extends QueryTest with ParquetTest with SharedSQLContex
       checkFilterPredicate('_1 <=> true, classOf[Eq[_]], true)
       checkFilterPredicate('_1 !== true, classOf[NotEq[_]], false)
     }
+  }
+
+  implicit class IntToTimestamp(int: Int) {
+    def t: Timestamp = new Timestamp(int)
+  }
+
+  test("timestamp binary test") {
+    withParquetDataFrame(
+      (1 to 1).map(i =>Tuple1(Option(i.t)))
+    ) { implicit df =>
+      df.rdd.collect.foreach(println)
+      checkFilterPredicate('_1 < 2.t, classOf[Lt[_]], 1.t)
+    }
+  }
+
+  test("filter pushdown - timestamp") {
+
+    withParquetDataFrame(
+      (1 to 4).map(i =>Tuple1(Option(i.t)))
+    ) { implicit
+      df =>
+      df.rdd.collect.foreach(println)
+      checkFilterPredicate('_1.isNull, classOf[Eq[_]], Seq.empty[Row])
+      checkFilterPredicate('_1.isNotNull, classOf[NotEq[_]], (1 to 4).map(i => Row.apply(i.t)))
+
+      checkFilterPredicate('_1 === 4.t, classOf[Eq[_]], 4.t)
+      checkFilterPredicate('_1 === 3.t, classOf[Eq[_]], 3.t)
+      checkFilterPredicate('_1 === 2.t, classOf[Eq[_]], 2.t)
+      checkFilterPredicate('_1 === 1.t, classOf[Eq[_]], 1.t)
+      checkFilterPredicate('_1 <=> 1.t, classOf[Eq[_]], 1.t)
+
+      checkFilterPredicate('_1 !== 1.t, classOf[NotEq[_]],
+        (2 to 4).map( i => Row.apply(i.t)))
+
+      // failing for unknown reason
+      checkFilterPredicate('_1 < 2.t, classOf[Lt[_]], 1.t)
+      checkFilterPredicate('_1 > 3.t, classOf[Gt[_]], 4.t)
+      checkFilterPredicate('_1 <= 1.t, classOf[LtEq[_]], 1.t)
+      checkFilterPredicate('_1 >= 4.t, classOf[GtEq[_]], 4.t)
+
+      checkFilterPredicate(Literal(1.t) === '_1, classOf[Eq[_]], 1.t)
+      checkFilterPredicate(Literal(1.t) <=> '_1, classOf[Eq[_]], 1.t)
+      // failing for unknown reason
+      checkFilterPredicate(Literal(2.t) > '_1, classOf[Lt[_]], 1.t)
+      checkFilterPredicate(Literal(3.t) < '_1, classOf[Gt[_]], 4.t)
+      checkFilterPredicate(Literal(1.t) >= '_1, classOf[LtEq[_]], 1.t)
+      checkFilterPredicate(Literal(4.t) <= '_1, classOf[GtEq[_]], 4.t)
+
+      checkFilterPredicate(!('_1 < 4.t), classOf[GtEq[_]], 4.t)
+      checkFilterPredicate('_1 < 2.t || '_1 > 3.t, classOf[Operators
+      .Or], Seq(Row(1.t),Row(4.t)))
+    }
+
   }
 
   test("filter pushdown - integer") {
@@ -220,7 +274,7 @@ class ParquetFilterSuite extends QueryTest with ParquetTest with SharedSQLContex
   }
 
   // See https://issues.apache.org/jira/browse/SPARK-11153
-  ignore("filter pushdown - string") {
+  test("filter pushdown - string") {
     withParquetDataFrame((1 to 4).map(i => Tuple1(i.toString))) { implicit df =>
       checkFilterPredicate('_1.isNull, classOf[Eq[_]], Seq.empty[Row])
       checkFilterPredicate(
