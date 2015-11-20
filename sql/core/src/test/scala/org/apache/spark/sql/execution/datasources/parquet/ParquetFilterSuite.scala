@@ -155,7 +155,7 @@ class ParquetFilterSuite extends QueryTest with ParquetTest with SharedSQLContex
       checkFilterPredicate('_1 === 1.t, classOf[Eq[_]], 1.t)
 
       checkFilterPredicate('_1 <=> 1.t, classOf[Eq[_]], 1.t)
-      checkFilterPredicate('_1 !== 1.t, classOf[NotEq[_]],
+      checkFilterPredicate('_1 =!= 1.t, classOf[NotEq[_]],
         (2 to 4).map( i => Row.apply(i.t)))
 
       checkFilterPredicate('_1 < 2.t, classOf[Lt[_]], 1.t)
