@@ -43,7 +43,7 @@ private[sql] object ParquetFilters {
   }
 
   private def toBinary(t: Timestamp) : Binary = {
-    val l = Option(t).map(DateTimeUtils.fromJavaTimestamp(_)).getOrElse(0l)
+    val l = Option(t).map(DateTimeUtils.fromJavaTimestamp(_)).getOrElse(0L)
     val (julianDay, timeOfDayNanos) =
       DateTimeUtils.toJulianDay(l)
     val timestampBuffer = new Array[Byte](12)
