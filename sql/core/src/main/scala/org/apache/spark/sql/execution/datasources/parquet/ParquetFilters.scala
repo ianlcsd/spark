@@ -18,11 +18,14 @@
 package org.apache.spark.sql.execution.datasources.parquet
 
 import java.io.Serializable
+import java.nio.{ByteBuffer, ByteOrder}
+import java.sql.Timestamp
 
 import org.apache.parquet.filter2.predicate._
 import org.apache.parquet.filter2.predicate.FilterApi._
 import org.apache.parquet.io.api.Binary
 
+import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.sources
 import org.apache.spark.sql.types._
 
@@ -37,6 +40,17 @@ private[sql] object ParquetFilters {
     override def canDrop(statistics: Statistics[T]): Boolean = false
 
     override def inverseCanDrop(statistics: Statistics[T]): Boolean = false
+  }
+
+  private def toBinary(t: Timestamp) : Binary = {
+    val l = Option(t).map(DateTimeUtils.fromJavaTimestamp(_)).getOrElse(0l)
+    val (julianDay, timeOfDayNanos) =
+      DateTimeUtils.toJulianDay(l)
+    val timestampBuffer = new Array[Byte](12)
+    val buf = ByteBuffer.wrap(timestampBuffer)
+    buf.order(ByteOrder.LITTLE_ENDIAN).putLong(timeOfDayNanos).putInt(julianDay)
+    val b = Binary.fromByteArray(timestampBuffer)
+    b
   }
 
   private val makeEq: PartialFunction[DataType, (String, Any) => FilterPredicate] = {
@@ -59,7 +73,12 @@ private[sql] object ParquetFilters {
     case BinaryType =>
       (n: String, v: Any) => FilterApi.eq(
         binaryColumn(n),
-        Option(v).map(b => Binary.fromReusedByteArray(v.asInstanceOf[Array[Byte]])).orNull)
+        Option(v).map(b => Binary.fromConstantByteArray(v.asInstanceOf[Array[Byte]])).orNull)
+    case TimestampType =>
+      (n: String, v: Any) => FilterApi.eq(
+        binaryColumn(n),
+        toBinary(v.asInstanceOf[java.sql.Timestamp]))
+
   }
 
   private val makeNotEq: PartialFunction[DataType, (String, Any) => FilterPredicate] = {
@@ -81,7 +100,12 @@ private[sql] object ParquetFilters {
     case BinaryType =>
       (n: String, v: Any) => FilterApi.notEq(
         binaryColumn(n),
-        Option(v).map(b => Binary.fromReusedByteArray(v.asInstanceOf[Array[Byte]])).orNull)
+        Option(v).map(b => Binary.fromConstantByteArray(v.asInstanceOf[Array[Byte]])).orNull)
+    case TimestampType =>
+      (n: String, v: Any) => FilterApi.notEq(
+        binaryColumn(n),
+        toBinary(v.asInstanceOf[java.sql.Timestamp]))
+
   }
 
   private val makeLt: PartialFunction[DataType, (String, Any) => FilterPredicate] = {
@@ -101,6 +125,9 @@ private[sql] object ParquetFilters {
     case BinaryType =>
       (n: String, v: Any) =>
         FilterApi.lt(binaryColumn(n), Binary.fromReusedByteArray(v.asInstanceOf[Array[Byte]]))
+    case TimestampType =>
+      (n: String, v: Any) =>
+        FilterApi.lt(binaryColumn(n), toBinary(v.asInstanceOf[java.sql.Timestamp]))
   }
 
   private val makeLtEq: PartialFunction[DataType, (String, Any) => FilterPredicate] = {
@@ -120,6 +147,9 @@ private[sql] object ParquetFilters {
     case BinaryType =>
       (n: String, v: Any) =>
         FilterApi.ltEq(binaryColumn(n), Binary.fromReusedByteArray(v.asInstanceOf[Array[Byte]]))
+    case TimestampType =>
+      (n: String, v: Any) =>
+        FilterApi.ltEq(binaryColumn(n), toBinary(v.asInstanceOf[java.sql.Timestamp]))
   }
 
   private val makeGt: PartialFunction[DataType, (String, Any) => FilterPredicate] = {
@@ -140,6 +170,9 @@ private[sql] object ParquetFilters {
     case BinaryType =>
       (n: String, v: Any) =>
         FilterApi.gt(binaryColumn(n), Binary.fromReusedByteArray(v.asInstanceOf[Array[Byte]]))
+    case TimestampType =>
+      (n: String, v: Any) => FilterApi.gt(binaryColumn(n), toBinary(v.asInstanceOf[java.sql
+      .Timestamp]))
   }
 
   private val makeGtEq: PartialFunction[DataType, (String, Any) => FilterPredicate] = {
@@ -159,6 +192,9 @@ private[sql] object ParquetFilters {
     case BinaryType =>
       (n: String, v: Any) =>
         FilterApi.gtEq(binaryColumn(n), Binary.fromReusedByteArray(v.asInstanceOf[Array[Byte]]))
+    case TimestampType =>
+      (n: String, v: Any) => FilterApi.gtEq(binaryColumn(n), toBinary(v.asInstanceOf[java.sql
+      .Timestamp]))
   }
 
   private val makeInSet: PartialFunction[DataType, (String, Set[Any]) => FilterPredicate] = {
